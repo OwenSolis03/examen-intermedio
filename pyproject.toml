@@ -1,0 +1,13 @@
+[project]
+name = "examen-intermedio"
+version = "0.1.0"
+description = "Examen intermedio Reconocimiento de Patrones (Examen B) - Owen Adiel Solis Zatarain (223201053)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "ipykernel>=7.4.0",
+    "matplotlib>=3.11.2",
+    "numpy>=2.4.6",
+    "pandas>=3.1.1",
+    "scikit-learn>=1.9.1",
+]
