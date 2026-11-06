@@ -181,10 +181,35 @@ Supongamos que se tienen $n = 50$ datos y $m = 5{,}000$ atributos que son puro r
     \item \textbf{Validación con ventana deslizante (\emph{sliding window}):} En lugar de acumular todos los datos desde mayo de 2008, entrenar y validar avanzando por bloques temporales mediante una ventana móvil de tamaño fijo que utilice únicamente los meses recientes previos al bloque que se desea predecir, descartando así los meses antiguos afectados por eventos económicos atípicos como la crisis de 2008.
 \end{enumerate}
 
+\clearpage
 % ============================================================================
 \subsection{Carta al banco (Inciso f de la parte práctica)}
 % ============================================================================
-% TODO: Se completará al terminar los experimentos de la parte práctica (máximo 1 página, sin jerga técnica).
+\noindent Estimado Banco:
+
+\medskip
+\noindent El modelo que les entregó la consultora exageraba lo que pueden esperar de su próxima campaña telefónica. Su 93\,\% de aciertos no significa mucho: como solo el 12\,\% de los clientes contrató, un modelo que dijera ``no'' a todos ya acertaría el 88\,\%. Revisamos el código y encontramos tres errores principales:
+
+\begin{itemize}
+    \item \textbf{Usaba la duración de la llamada.} El modelo usaba cuánto duró cada llamada, pero ese dato solo se conoce \emph{después} de llamar. Es como adivinar quién va a contratar sabiendo ya si la conversación fue larga. Cuando quitamos ese dato, el desempeño cayó notablemente. Lo mismo pasa con el número de llamadas de la campaña y la fecha del último contacto.
+    \item \textbf{Mezcló las fechas.} Las llamadas van de 2008 a 2010, y la consultora las revolvió antes de probar el modelo. Así, el modelo aprendía con llamadas de 2010 para ``predecir'' llamadas de 2008, algo que en la vida real nunca va a pasar: ustedes siempre van a predecir la próxima campaña con información del pasado. Además, el porcentaje de clientes que contrata cambió mucho con el tiempo (en los primeros meses contrataba cerca del 3\,\% y al final casi la mitad), así que mezclar fechas esconde ese cambio. Este fue el error que más infló el resultado.
+    \item \textbf{Calificó al modelo con datos que ya conocía.} Para compensar que pocos clientes contratan, duplicaron seis veces las llamadas con contratación, y lo hicieron antes de separar los datos de entrenamiento y de prueba. También eligieron las variables y el ajuste final mirando los datos de prueba. Es como presentar un examen después de haber visto las respuestas.
+\end{itemize}
+
+\noindent \textbf{¿Qué desempeño es realista?} Corregimos todo y probamos el modelo como se va a usar: entrenándolo con las llamadas más antiguas y midiéndolo con las más recientes, que nunca vio. El modelo no sirve para decir con certeza quién va a contratar, pero sí para \textbf{ordenar} a sus clientes de mayor a menor probabilidad de contratar. Si llaman primero al 10\,\% de clientes que el modelo pone hasta arriba, cerca del \textbf{70\,\%} contrata (entre 67\,\% y 73\,\%), contra el \textbf{32\,\%} si llaman al azar en ese mismo periodo. Es decir, consiguen alrededor de \textbf{2.2 veces más contrataciones por llamada}.
+
+\medskip
+\noindent \textbf{Lo que recomiendo:}
+\begin{enumerate}
+    \item Usar el modelo para decidir \emph{en qué orden} llamar a sus clientes, empezando por los de mayor probabilidad, y no como una respuesta de ``sí'' o ``no''.
+    \item Actualizar el modelo antes de cada campaña usando solo las llamadas más recientes. Encontramos que entrenar con las llamadas recientes funciona mejor que usar todo el historial, porque el comportamiento de los clientes cambia con el tiempo.
+    \item Pedirle a cualquier proveedor que demuestre su modelo con campañas \emph{posteriores} a las que usó para construirlo, y desconfiar de resultados casi perfectos.
+    \item Medir los resultados reales de cada campaña y compararlos con lo esperado, para detectar a tiempo si el modelo deja de funcionar.
+\end{enumerate}
+
+\medskip
+\noindent Atentamente,\\
+Owen Adiel Solis Zatarain
 
 % ============================================================================
 \subsection{Bitácora de decisiones — Problema 1}
