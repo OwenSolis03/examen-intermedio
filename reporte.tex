@@ -271,5 +271,65 @@ Para cada decisión anotamos qué decidimos, qué alternativa descartamos, por q
     \item[Qué perdemos.] No comprobamos si un clasificador más flexible exagera aún más. Con 45 atributos y 40 datos de entrenamiento, la regresión logística ya separa casi perfectamente, así que el resultado probablemente no cambiaría.
 \end{description}
 
+% ============================================================================
+\clearpage
+\section*{Declaración de uso de asistentes de IA}
+\addcontentsline{toc}{section}{Declaración de uso de asistentes de IA}
+% ============================================================================
+% PLANTILLA: todo lo que está en rojo con \pendiente{...} lo debes reemplazar con tu texto.
+% Los comentarios con "Referencia:" son datos para ayudarte; no salen en el PDF.
+\newcommand{\pendiente}[1]{\textcolor{red}{[#1]}}
+
+\subsection*{Herramientas utilizadas}
+\begin{itemize}
+    \item \textbf{Gemini} (Google): \pendiente{versión o modelo, si lo sabes}.
+    \item \textbf{Claude Code} (Anthropic), con el modelo Claude Opus 5.5, dentro de VS Code. Tiene acceso a los archivos del repositorio y puede ejecutar código.
+\end{itemize}
+
+\subsection*{Problema 1}
+
+\paragraph{Parte teórica.}
+\pendiente{¿Para qué usaste Gemini en la teoría? (por ejemplo: que te explicara los conceptos que no viste en clase sin darte la respuesta, revisar tus cálculos, pasar en limpio tus explicaciones a LaTeX)}
+
+\pendiente{¿Qué hiciste tú? (cálculos de (a), (b) y (c); tu argumento sobre \texttt{duration} con tu experiencia en el centro de llamadas; la idea de la crisis de 2008 y la ventana deslizante en (e))}
+% Referencia (resumen de tu sesión con Gemini): calculaste 48.12 %, 1 - 0.2^6, la exactitud
+% en función de p, los sesgos de 3.50 % y 0.54 %, y la correlación de 0.5837. Diseñaste la regla
+% de dos etapas para duration (antes y después de la llamada) e identificaste campaign, day y month.
+
+\paragraph{Parte práctica.}
+\pendiente{¿Para qué usaste Gemini en el notebook? (estructura de celdas, depurar errores)}
+
+\pendiente{¿Para qué usaste Claude? Sé específico: qué programó, qué revisó, qué te explicó}
+% Referencia (lo que hizo Claude):
+%  - Corrigió el .gitignore y se encargó de los commits y los push.
+%  - Inciso (c): detectó que tus celdas no corregían un problema a la vez; te guió celda por celda
+%    para corregirlas (tú las editaste y corriste; la celda "todos corregidos" te la dio completa
+%    con explicación); agregó títulos y la tabla resumen.
+%  - Inciso (d): propuso la métrica (precisión en el 10 % superior) y comparar class_weight contra no
+%    hacer nada; programó el Pipeline, la validación temporal, el bootstrap, la búsqueda de la ventana
+%    deslizante (tu hipótesis) y la curva de ganancia.
+%  - Inciso (e): programó la simulación y la gráfica (el clasificador lo elegiste tú).
+%  - Diagnosticó que la tasa de contratación cambia con el tiempo y por qué la correlación medida
+%    es menor que la de (P1).
+
+\paragraph{Redacción.}
+\pendiente{¿Quién escribió qué? (comentarios del notebook, carta al banco, bitácora, README)}
+% Referencia: comentarios de (c) y (d): borrador tuyo, corregido y completado por Claude.
+% Comentario de (e): escrito por Claude después de explicártelo. Carta: borrador tuyo, reestructurado
+% por Claude. Bitácora y README de problema-1: redactados por Claude a partir de las decisiones
+% tomadas en la conversación.
+
+\paragraph{Decisiones propias.}
+\pendiente{¿Qué decisiones tomaste tú y cuáles propuso la IA y tú aceptaste?}
+% Referencia: tuyas: partición cronológica, hipótesis de la ventana deslizante, qué variables son
+% fuga, regresión logística en (e). Propuestas por Claude y aceptadas: métrica de reporte y
+% comparación de class_weight.
+
+\subsection*{Problema 2}
+\pendiente{Llenar al terminar el problema 2}
+
+\subsection*{Cómo verifiqué lo que hizo la IA}
+\pendiente{¿Cómo te aseguraste de que fuera correcto y de entenderlo? (por ejemplo: corriste cada celda y comparaste con los valores esperados, pediste explicaciones de cada paso, revisaste los resultados contra la teoría)}
+
 \end{document}
 
