@@ -214,7 +214,62 @@ Owen Adiel Solis Zatarain
 % ============================================================================
 \subsection{Bitácora de decisiones — Problema 1}
 % ============================================================================
-% TODO: Al menos 3 decisiones importantes (qué decidiste, qué alternativa descartaste, por qué y qué evidencia te convenció).
+\sloppy
+Para cada decisión anotamos qué decidimos, qué alternativa descartamos, por qué, qué evidencia nos convenció y qué perdemos con ella. Los números vienen del notebook \texttt{problema-1/problema\_1.ipynb}.
+
+\subsubsection*{Decisión 1: Qué variables son fuga de información (Tú decides, teoría (d))}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] Usamos el modelo \emph{antes} de llamar al cliente, así que quitamos todas las variables que se registran durante o después del contacto de la campaña actual: \texttt{duration}, \texttt{campaign}, \texttt{day} y \texttt{month}.
+    \item[Alternativa descartada.] Quitar solo \texttt{duration}, que es la fuga más evidente.
+    \item[Por qué.] Con nuestra definición de fuga (una variable que no se conoce en el momento $t_0$ en que se usa el modelo), \texttt{campaign}, \texttt{day} y \texttt{month} tienen el mismo problema que \texttt{duration}: antes de llamar no se sabe cuántos intentos habrá ni en qué fecha será el último contacto.
+    \item[Evidencia.] En la tabla del inciso (c), quitar \texttt{duration} baja el AUC de 0.893 a 0.750, y quitar además las otras tres lo baja a 0.734. Esa diferencia adicional es información que el modelo no tendría en la práctica.
+    \item[Qué perdemos.] El modelo no sirve para el uso posterior a la llamada (por ejemplo, priorizar seguimientos), donde \texttt{duration} sí sería válida. Además, \texttt{month} podría conocerse si la campaña ya está calendarizada; al quitarla, perdemos la estacionalidad.
+\end{description}
+
+\subsubsection*{Decisión 2: Partición cronológica (Tú decides, práctica (d))}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] El último 20\,\% de las llamadas es la prueba. Los hiperparámetros se eligen con \texttt{TimeSeriesSplit} (5 pliegues) dentro del entrenamiento, así que siempre se entrena con el pasado y se valida con el futuro.
+    \item[Alternativa descartada.] Partición al azar estratificada, con \texttt{StratifiedKFold}.
+    \item[Por qué.] El banco va a usar el modelo para la \emph{próxima} campaña, con datos de campañas anteriores. Una partición al azar deja que el modelo vea el futuro, como explicamos en la teoría (e).
+    \item[Evidencia.] Corregir solo la partición baja el AUC de 0.893 a 0.680: es la corrección individual que más pesa. Además, la tasa de contratación por bloques cronológicos sube de 3\,\% a 47\,\%, y en la prueba es de 31.6\,\% contra $\approx 5$\,\% en el entrenamiento. Una partición al azar esconde ese cambio.
+    \item[Qué perdemos.] Los primeros pliegues entrenan con pocos datos y la validación cruzada es muy ruidosa: su AUC es $\approx 0.54$ y la desviación entre pliegues es de $\approx 0.1$. Por eso, con la validación cruzada es difícil distinguir entre hiperparámetros parecidos.
+\end{description}
+
+\subsubsection*{Decisión 3: Ventana deslizante de entrenamiento}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] Tratamos el tamaño de la ventana como un hiperparámetro más: creciente o las últimas 3,000, 6,000, 12,000 o 18,000 llamadas. La validación cruzada temporal eligió las \textbf{últimas 3,000 llamadas}, y el modelo final se entrena solo con ellas.
+    \item[Alternativa descartada.] La ventana creciente, que usa todo el historial desde mayo de 2008.
+    \item[Por qué.] En la teoría (e) propusimos una ventana deslizante porque los meses viejos se parecen poco a la siguiente campaña. Quisimos ponerlo a prueba en lugar de solo afirmarlo.
+    \item[Evidencia.] La validación cruzada apenas distingue entre ventanas (entre 0.092 y 0.119 de precisión en el 10\,\% superior, con desviación de $\approx 0.1$). Como diagnóstico, que no se usó para elegir, comparamos en la prueba: la ventana de 3,000 supera a la creciente por 6.0 puntos de precisión en el 10\,\% superior, con un intervalo de confianza del 95\,\% por bootstrap pareado de $[+3.3, +9.1]$ que no incluye el cero.
+    \item[Qué perdemos.] Entrenamos con menos del 10\,\% de los datos disponibles, así que el modelo tiene más varianza. Además, la relación no es monótona (la ventana de 18,000 quedó peor que la creciente), por lo que el tamaño óptimo puede cambiar de una campaña a otra.
+\end{description}
+
+\subsubsection*{Decisión 4: Tratamiento del desbalance (Tú decides, práctica (d))}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] No repetimos renglones. Comparamos \emph{no hacer nada} contra \texttt{class\_weight="balanced"} (pesos, sin copias) como un hiperparámetro de la búsqueda. Las dos opciones quedaron empatadas y la búsqueda tomó \texttt{balanced} con $C = 1$.
+    \item[Alternativa descartada.] Repetir positivos o usar SMOTE dentro de cada pliegue.
+    \item[Por qué.] El banco va a usar las probabilidades para \emph{ordenar} clientes, no el corte en 0.5. En una regresión logística, los pesos casi solo mueven el intercepto, así que el orden casi no cambia. Repetir renglones agrega el riesgo de que las copias se crucen entre pliegues (el error de la consultora), y SMOTE necesita una librería adicional.
+    \item[Evidencia.] Con la ventana elegida, la mejor combinación de cada opción llega a 0.119 de precisión en el 10\,\% superior en la validación cruzada. Con la ventana creciente, la diferencia entre las dos opciones fue menor a 0.01, contra una desviación entre pliegues de 0.09.
+    \item[Qué perdemos.] Si el banco quisiera una respuesta de ``sí/no'' con un umbral fijo, las probabilidades sin balancear casi nunca pasarían de 0.5. Habría que elegir el umbral aparte.
+\end{description}
+
+\subsubsection*{Decisión 5: Métrica de reporte (Tú decides, práctica (d))}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] La métrica principal es la \textbf{precisión en el 10\,\% superior}: si el banco llama al 10\,\% de clientes con mayor probabilidad, ¿qué proporción contrata? La acompañamos del \emph{lift} sobre la tasa base de la prueba, el AUC-PR y el AUC-ROC, todos con un intervalo de confianza del 95\,\% por bootstrap de la prueba (1,000 remuestreos).
+    \item[Alternativa descartada.] La exactitud, que reportó la consultora.
+    \item[Por qué.] La métrica tiene que medir cómo se va a usar el modelo: llamar primero a los más probables. La exactitud premia decir ``no'' a todos.
+    \item[Evidencia.] En el inciso (c), la exactitud trivial (predecir siempre la clase mayoritaria) va de 0.518 a 0.877 según la variante, y la variante sin copias da una exactitud de 0.848, \emph{peor} que la trivial de 0.877. La exactitud engaña. Con nuestra métrica, el modelo final da 0.702 $[0.675, 0.732]$ contra una tasa base de 0.316, es decir, un lift de 2.22.
+    \item[Qué perdemos.] El 10\,\% es una suposición sobre la capacidad del centro de llamadas. Si el banco llama a otra fracción, hay que recalcular la métrica; la curva de ganancia del notebook muestra todas las fracciones.
+\end{description}
+
+\subsubsection*{Decisión 6: Clasificador del experimento del ruido (práctica (e))}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] Usamos regresión logística, con 100 repeticiones y validación cruzada estratificada de 5 pliegues.
+    \item[Alternativa descartada.] $k$ vecinos más cercanos.
+    \item[Por qué.] Es la misma familia de modelos que en el resto del problema, así que el experimento ilustra directamente el error de \texttt{SelectKBest} de la consultora.
+    \item[Evidencia.] Con la selección antes de la validación cruzada, la exactitud estimada es de 99.1\,\% en promedio; con la selección dentro de cada pliegue, de 49.4\,\%. Las distribuciones no se traslapan.
+    \item[Qué perdemos.] No comprobamos si un clasificador más flexible exagera aún más. Con 45 atributos y 40 datos de entrenamiento, la regresión logística ya separa casi perfectamente, así que el resultado probablemente no cambiaría.
+\end{description}
 
 \end{document}
 
