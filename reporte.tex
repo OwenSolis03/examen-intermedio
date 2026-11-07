@@ -282,54 +282,38 @@ Para cada decisión anotamos qué decidimos, qué alternativa descartamos, por q
 
 \subsection*{Herramientas utilizadas}
 \begin{itemize}
-    \item \textbf{Gemini} (Google): \pendiente{versión o modelo, si lo sabes}.
-    \item \textbf{Claude Code} (Anthropic), con el modelo Claude Opus 5.5, dentro de VS Code. Tiene acceso a los archivos del repositorio y puede ejecutar código.
+    \item \textbf{Gemini} (Google), con el modelo Gemini 4 Argon, dentro de Antigravity IDE (fork de VS Code). Tiene acceso a los archivos del repositorio y puede ejecutar código.
+    \item \textbf{Claude Code} (Anthropic), con el modelo Claude Opus 5.5, dentro de Antigravity IDE (fork de VS Code). Tiene acceso a los archivos del repositorio y puede ejecutar código.
 \end{itemize}
 
 \subsection*{Problema 1}
 
-\paragraph{Parte teórica.}
-\pendiente{¿Para qué usaste Gemini en la teoría? (por ejemplo: que te explicara los conceptos que no viste en clase sin darte la respuesta, revisar tus cálculos, pasar en limpio tus explicaciones a LaTeX)}
+\paragraph{Parte teórica.} Usé Gemini como tutor. Como estuve ausente en varias clases de este tema, le pedí que me explicara a qué se refería cada pregunta y cómo podía abordarla, \emph{sin darme la respuesta}. Con esas explicaciones hice yo los cálculos: la fracción de positivos después de repetirlos (48.12\,\%), la probabilidad de que un positivo de prueba tenga una copia en el entrenamiento ($1 - 0.2^6$), la exactitud medida en función de $p$, los sesgos de 3.50\,\% (mi caso) y 0.54\,\% (la consultora) en el inciso (b), y la correlación máxima de $\approx 0.58$ en el inciso (c). Gemini revisó mis operaciones, me dio una plantilla de \LaTeX{} para el reporte y pasó en limpio, en prosa, las explicaciones que yo le di en la conversación.
 
-\pendiente{¿Qué hiciste tú? (cálculos de (a), (b) y (c); tu argumento sobre \texttt{duration} con tu experiencia en el centro de llamadas; la idea de la crisis de 2008 y la ventana deslizante en (e))}
-% Referencia (resumen de tu sesión con Gemini): calculaste 48.12 %, 1 - 0.2^6, la exactitud
-% en función de p, los sesgos de 3.50 % y 0.54 %, y la correlación de 0.5837. Diseñaste la regla
-% de dos etapas para duration (antes y después de la llamada) e identificaste campaign, day y month.
+En el inciso (d), el argumento sobre \texttt{duration} sale de mi experiencia trabajando en un centro de llamadas (vendiendo paquetes vacacionales para Air Canada): una llamada larga no garantiza una venta, pero una muy corta casi seguro no la tiene. A partir de eso propuse la regla de dos etapas (antes y después de llamar) e identifiqué que \texttt{campaign}, \texttt{day} y \texttt{month} tienen el mismo problema. En el inciso (e), la idea de que los meses de la crisis de 2008 contaminan el modelo y la propuesta de una ventana deslizante también son mías.
 
-\paragraph{Parte práctica.}
-\pendiente{¿Para qué usaste Gemini en el notebook? (estructura de celdas, depurar errores)}
+\paragraph{Parte práctica.} Con Gemini armé el notebook inicial: modifiqué yo el código de la consultora con mis parámetros (inciso (a)), escribí la tabla de problemas (inciso (b)) y las celdas de las variantes del inciso (c). Gemini me ayudó a depurar los errores que me salieron.
 
-\pendiente{¿Para qué usaste Claude? Sé específico: qué programó, qué revisó, qué te explicó}
-% Referencia (lo que hizo Claude):
-%  - Corrigió el .gitignore y se encargó de los commits y los push.
-%  - Inciso (c): detectó que tus celdas no corregían un problema a la vez; te guió celda por celda
-%    para corregirlas (tú las editaste y corriste; la celda "todos corregidos" te la dio completa
-%    con explicación); agregó títulos y la tabla resumen.
-%  - Inciso (d): propuso la métrica (precisión en el 10 % superior) y comparar class_weight contra no
-%    hacer nada; programó el Pipeline, la validación temporal, el bootstrap, la búsqueda de la ventana
-%    deslizante (tu hipótesis) y la curva de ganancia.
-%  - Inciso (e): programó la simulación y la gráfica (el clasificador lo elegiste tú).
-%  - Diagnosticó que la tasa de contratación cambia con el tiempo y por qué la correlación medida
-%    es menor que la de (P1).
+Después usé Claude Code para revisar y continuar el trabajo:
+\begin{itemize}
+    \item \textbf{Repositorio:} corrigió el nombre del \texttt{.gitignore} y se encargó de los \emph{commits} y de subirlos a GitHub.
+    \item \textbf{Inciso (c):} detectó que varias de mis celdas no corregían un solo problema a la vez (por ejemplo, la de copias quitaba el sobremuestreo por completo y la temporal corregía dos cosas). Me guió celda por celda para corregirlas: yo hice los cambios y corrí cada celda, comparando con los valores esperados. La celda de ``todos corregidos'' me la dio completa, con la explicación de cada bloque. También agregó los títulos de las celdas y la tabla resumen.
+    \item \textbf{Inciso (d):} programó la versión honesta (el \texttt{Pipeline}, la validación cruzada temporal, el intervalo por \emph{bootstrap} y la curva de ganancia). También programó la prueba de mi hipótesis de la ventana deslizante, con un \emph{bootstrap} pareado, y encontró que la tasa de contratación cambia mucho con el tiempo.
+    \item \textbf{Inciso (e):} programó la simulación del ruido y su gráfica, y me explicó por qué la correlación medida (0.516) es menor que la que predice (P1).
+\end{itemize}
 
-\paragraph{Redacción.}
-\pendiente{¿Quién escribió qué? (comentarios del notebook, carta al banco, bitácora, README)}
-% Referencia: comentarios de (c) y (d): borrador tuyo, corregido y completado por Claude.
-% Comentario de (e): escrito por Claude después de explicártelo. Carta: borrador tuyo, reestructurado
-% por Claude. Bitácora y README de problema-1: redactados por Claude a partir de las decisiones
-% tomadas en la conversación.
+\paragraph{Redacción.} Los comentarios de los incisos (c) y (d) del notebook y la carta al banco parten de borradores míos, que Claude corrigió y completó. En la carta reordenó los errores para que coincidieran con mis resultados y agregó recomendaciones. El comentario del inciso (e), la bitácora de decisiones y el \texttt{README} del problema 1 los redactó Claude a partir de las decisiones que tomamos en la conversación.
 
-\paragraph{Decisiones propias.}
-\pendiente{¿Qué decisiones tomaste tú y cuáles propuso la IA y tú aceptaste?}
-% Referencia: tuyas: partición cronológica, hipótesis de la ventana deslizante, qué variables son
-% fuga, regresión logística en (e). Propuestas por Claude y aceptadas: métrica de reporte y
-% comparación de class_weight.
+\paragraph{Decisiones propias.} Las decisiones de fondo fueron mías: usar el modelo \emph{antes} de llamar y, por lo tanto, quitar \texttt{duration}, \texttt{campaign}, \texttt{day} y \texttt{month}; respetar el orden cronológico de los datos; la hipótesis de la ventana deslizante; y usar regresión logística en el experimento del ruido. Claude propuso la métrica de reporte (precisión en el 10\,\% superior) y comparar \texttt{class\_weight="balanced"} contra no balancear; yo las acepté después de que me explicara por qué tenían sentido para el uso del banco.
 
 \subsection*{Problema 2}
 \pendiente{Llenar al terminar el problema 2}
 
 \subsection*{Cómo verifiqué lo que hizo la IA}
-\pendiente{¿Cómo te aseguraste de que fuera correcto y de entenderlo? (por ejemplo: corriste cada celda y comparaste con los valores esperados, pediste explicaciones de cada paso, revisaste los resultados contra la teoría)}
+Corrí yo mismo cada celda del notebook y comparé sus resultados con los valores esperados. Cuando no entendía algo (por ejemplo, el experimento del ruido o por qué balancear no cambia el resultado), pedí que me lo explicaran con un ejemplo antes de aceptarlo. También revisé que los resultados prácticos fueran coherentes con la parte teórica, y cuando no lo eran (las copias en el inciso (c) y la correlación en el inciso (e)), pedí la explicación de la diferencia.
+
+\medskip
+\noindent\textit{Esta declaración fue redactada con ayuda de Claude, a partir del historial de mis sesiones con ambos asistentes.}
 
 \end{document}
 
