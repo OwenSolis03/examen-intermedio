@@ -416,6 +416,111 @@ Todos los puntos de la clase $0$ quedan en valores negativos ($-2$ y $-1$) y tod
 \small Clase 0 ($\bullet$), clase 1 ($\times$), el mejor corte paralelo a un eje (naranja, punteado) y el corte oblicuo de Fisher (azul).
 \end{center}
 
+% ----------------------------------------------------------------------------
+\subsubsection*{(c) Cuántos cortes hay que revisar (5 pts)}
+% ----------------------------------------------------------------------------
+
+\textbf{Cortes paralelos a un eje.} Para una variable, ordenamos los $n$ valores y solo importa entre qué par de valores consecutivos ponemos el umbral: hay $n-1$ posiciones distintas. Con $d$ variables hay $d(n-1)$ cortes distintos. Con $n = 1{,}000$:
+\[
+    d = 4:\; 4 \cdot 999 = 3{,}996 \text{ cortes}, \qquad d = 30:\; 30 \cdot 999 = 29{,}970 \text{ cortes}.
+\]
+
+\textbf{Cortes oblicuos.} Por (P2), el número de maneras distintas de separar los $n$ puntos con un hiperplano es $2\sum_{i=0}^{d}\binom{n-1}{i}$:
+\[
+    d = 4:\; 2\left[1 + 999 + \tbinom{999}{2} + \tbinom{999}{3} + \tbinom{999}{4}\right] \approx 8.3 \times 10^{10},
+    \qquad
+    d = 30:\; 2\sum_{i=0}^{30}\tbinom{999}{i} \approx 4.9 \times 10^{57}.
+\]
+Para $d = 4$ ya son unos 20 millones de veces más cortes que los paralelos, y para $d = 30$ el número es astronómico (para comparar, se estima que hay unos $10^{50}$ átomos en la Tierra). El número de cortes paralelos crece \emph{linealmente} con $d$, mientras que el de cortes oblicuos crece como $n^d$.
+
+\textbf{¿Se pueden revisar todos los cortes oblicuos?} No. Aun revisando mil millones de cortes por segundo, $8.3 \times 10^{10}$ tomaría más de un minuto \emph{por nodo} con $d = 4$, y $4.9 \times 10^{57}$ es imposible. Por eso no se busca el mejor corte oblicuo por fuerza bruta: se usa una heurística que propone \emph{una} dirección prometedora (aquí, la de Fisher) y solo se busca el umbral sobre ella, que de nuevo son $n - 1$ opciones.
+
+\textbf{Sesgo y varianza.} Un corte más flexible tiene menos \emph{sesgo}: puede acercarse más a la frontera real (por ejemplo, la diagonal del inciso (a) con un solo corte). Pero tiene más \emph{varianza}: entre más cortes posibles revisamos, más probable es que alguno separe bien los datos de entrenamiento \emph{por casualidad}, ajustándose al ruido. Es el mismo fenómeno del Problema 1, inciso (b): al elegir el mejor entre $m$ candidatos, el resultado se infla aproximadamente en proporción a $\sqrt{2\ln m}$, y aquí $m$ crece como $n^d$, así que $\ln m$ crece como $d \ln n$. Con pocos datos por nodo (lo que pasa en los nodos profundos) y muchas dimensiones, el corte oblicuo puede sobreajustar mucho más que el paralelo.
+
+% ----------------------------------------------------------------------------
+\subsubsection*{(d) Qué no les afecta a cada uno (6 pts)}
+% ----------------------------------------------------------------------------
+
+\textbf{1. El árbol con cortes paralelos no cambia con una función estrictamente creciente.} Sea $f$ estrictamente creciente y supongamos que la aplicamos a la variable $x_j$. Como $f$ es estrictamente creciente, $a < b \iff f(a) < f(b)$, así que $f$ conserva el \emph{orden} de los valores de $x_j$. Un corte ``¿$x_j \le c$?'' parte los puntos del nodo en dos grupos: los que tienen $x_j \le c$ y los demás. Después de transformar, el corte ``¿$f(x_j) \le f(c)$?'' produce exactamente los mismos dos grupos, porque $x_j \le c \iff f(x_j) \le f(c)$. Al revés, cualquier corte sobre $f(x_j)$ corresponde a uno sobre $x_j$. Por lo tanto, el conjunto de particiones posibles del nodo es el mismo antes y después de transformar. Como el índice de Gini depende solo de qué puntos quedan en cada grupo (no de los valores de $x_j$), el árbol elige la misma partición en cada nodo; a los hijos llegan los mismos puntos y, por inducción, todo el árbol hace las mismas particiones. Lo único que cambia es el número del umbral: si se toma el punto medio entre dos valores consecutivos $a < b$, antes era $\frac{a+b}{2}$ y después es $\frac{f(a)+f(b)}{2}$, que en general no es $f\!\left(\frac{a+b}{2}\right)$. Las otras variables no se ven afectadas.
+
+\textbf{2. La dirección de Fisher bajo $x' = Ax + c$.} Sea $A$ invertible. Las medias se transforman igual que los puntos, porque el promedio es lineal:
+\[
+    m_k' = \frac{1}{n_k}\sum_{i \in k}(Ax_i + c) = A m_k + c, \qquad k = 0, 1.
+\]
+Entonces las desviaciones solo se multiplican por $A$ (la traslación $c$ se cancela): $x_i' - m_k' = A(x_i - m_k)$. Por lo tanto,
+\[
+    S_W' = \sum_{k}\sum_{i \in k} A(x_i - m_k)(x_i - m_k)^\top A^\top = A\, S_W\, A^\top,
+    \qquad
+    m_1' - m_0' = A(m_1 - m_0).
+\]
+Usando $(ABC)^{-1} = C^{-1}B^{-1}A^{-1}$ y $(A^\top)^{-1} = A^{-\top}$:
+\[
+    w' = (S_W')^{-1}(m_1' - m_0') = A^{-\top} S_W^{-1} A^{-1} A (m_1 - m_0) = A^{-\top} S_W^{-1}(m_1 - m_0) = A^{-\top} w.
+\]
+Ahora proyectamos un punto transformado:
+\[
+    w'^\top x' = (A^{-\top}w)^\top (Ax + c) = w^\top A^{-1}(Ax + c) = w^\top x + w^\top A^{-1} c,
+\]
+y $w^\top A^{-1} c$ es la misma constante para todos los puntos. Es decir, las proyecciones después de transformar son las de antes \emph{desplazadas por una constante}. Desplazar todos los valores no cambia su orden, así que las particiones posibles sobre la proyección son las mismas, el Gini elige la misma, y solo el umbral se recorre: $t' = t + w^\top A^{-1}c$. Como a los hijos llegan los mismos puntos, por inducción todo el árbol hace las mismas particiones. Girar ($A$ ortogonal), estirar ($A$ diagonal con entradas no nulas) o trasladar ($c$) son casos de $x' = Ax + c$ con $A$ invertible, así que los cortes del árbol oblicuo no cambian.
+
+\textbf{3. ¿Invariancias cruzadas?}
+\begin{itemize}
+    \item \emph{El árbol con cortes paralelos no es invariante a una rotación.} La rotación mezcla las variables, y sus cortes solo pueden usar una variable a la vez. Por ejemplo, la frontera $x_1 > 0.2$ se resuelve con un solo corte; si giramos los datos $35^\circ$, la frontera se vuelve una línea inclinada y el árbol necesita una escalera de muchos escalones, como en el inciso (a).
+    \item \emph{El árbol oblicuo no es invariante a un logaritmo.} El logaritmo no es una transformación lineal, así que no es de la forma $Ax + c$ y el argumento anterior no aplica. En general, $w^\top \log(x)$ no es una función creciente de $w^\top x$, y las medias y $S_W$ cambian de forma no lineal. Por ejemplo, la frontera $x_2 > x_1$ (un solo corte oblicuo) se convierte, con $x_1' = \log x_1$, en $x_2 > e^{x_1'}$, que es una curva: ya no la separa ningún hiperplano. La excepción es cuando el mejor corte usa una sola variable ($w$ paralelo a un eje); entonces se comporta como un árbol normal en esa variable.
+\end{itemize}
+
+% ----------------------------------------------------------------------------
+\subsubsection*{(e) Tu diseño (4 pts)}
+% ----------------------------------------------------------------------------
+
+\textbf{Decisiones (Tú decides).}
+\begin{itemize}
+    \item \textbf{Cuando $S_W$ no es invertible}, el nodo usa solo cortes paralelos a un eje, como un árbol normal. Consideramos que $S_W$ no es invertible si su número de condición es mayor que $10^{10}$ (en la práctica, una matriz casi singular da direcciones inestables, no solo una exactamente singular). Esto pasa sobre todo en nodos con pocos datos o cuando alguna variable es constante en el nodo. Descartamos regularizar ($S_W + \lambda I$) porque introduce un parámetro más ($\lambda$) que habría que elegir, y descartamos la pseudo-inversa porque en matrices casi singulares da direcciones que dependen del ruido.
+    \item \textbf{En cada nodo comparamos} el mejor corte oblicuo (dirección de Fisher con su mejor umbral) contra el mejor corte paralelo a un eje, y nos quedamos con el de menor Gini ponderado. Así el árbol nunca hace un corte peor que el de un árbol normal en ese nodo, y si la frontera real es paralela a un eje, la puede usar. Lo que perdemos es parte de la invariancia a rotaciones del inciso (d): cuando el árbol elige un corte paralelo, ese nodo sí depende de los ejes.
+\end{itemize}
+
+\textbf{Pseudocódigo.}
+\begin{verbatim}
+CONSTRUIR(X, y, profundidad):
+    p <- proporción de la clase 1 en y
+    si profundidad = max_profundidad, o todos los y son iguales,
+       o hay menos de min_muestras puntos:
+        regresar HOJA(p)
+
+    candidatos <- []
+    # Corte oblicuo (dirección de Fisher)
+    si las dos clases tienen al menos 2 puntos:
+        m0, m1 <- medias de cada clase
+        S_W   <- suma de (x - m_c)(x - m_c)^T sobre todos los puntos
+        si número de condición de S_W <= 1e10:
+            w <- resolver S_W w = (m1 - m0)
+            agregar MEJOR_UMBRAL(X w, y) con dirección w a candidatos
+    # Cortes paralelos a cada eje
+    para cada variable j:
+        agregar MEJOR_UMBRAL(X[:, j], y) con dirección e_j a candidatos
+
+    (w, t, gini) <- el candidato con menor Gini ponderado
+    si gini >= Gini del nodo sin partir:
+        regresar HOJA(p)               # ningún corte mejora
+    izq <- puntos con w^T x <= t ;  der <- los demás
+    regresar NODO(w, t, CONSTRUIR(izq, profundidad + 1),
+                        CONSTRUIR(der, profundidad + 1))
+
+MEJOR_UMBRAL(z, y):           # z: un número por punto
+    ordenar z (y sus y)
+    para cada par de valores consecutivos distintos z_(i) < z_(i+1):
+        t <- (z_(i) + z_(i+1)) / 2
+        G <- (n_izq/n) Gini(izq) + (n_der/n) Gini(der),
+             con Gini(grupo) = 1 - p0^2 - p1^2
+    regresar el t con menor G (y su G)
+
+PREDECIR_PROBA(x): bajar por el árbol eligiendo izquierda si w^T x <= t;
+                   regresar el p de la hoja (proporción de clase 1)
+PREDECIR(x):       1 si PREDECIR_PROBA(x) >= 1/2, si no 0
+\end{verbatim}
+
+\textbf{Cuándo detenerse:} cuando se llega a la profundidad máxima (que se elige con validación cruzada en la parte práctica), cuando el nodo es puro, cuando quedan menos de \texttt{min\_muestras} puntos, o cuando ningún corte reduce el Gini. \textbf{Qué predice cada hoja:} la proporción de puntos de clase $1$ que llegaron a ella en el entrenamiento; esa es la probabilidad de \texttt{predict\_proba}, y \texttt{predict} da la clase mayoritaria.
+
 \clearpage
 \section*{Declaración de uso de asistentes de IA}
 \addcontentsline{toc}{section}{Declaración de uso de asistentes de IA}
