@@ -475,7 +475,7 @@ y $w^\top A^{-1} c$ es la misma constante para todos los puntos. Es decir, las p
 
 \textbf{Decisiones (Tú decides).}
 \begin{itemize}
-    \item \textbf{Cuando $S_W$ no es invertible}, el nodo usa solo cortes paralelos a un eje, como un árbol normal. Consideramos que $S_W$ no es invertible si su número de condición es mayor que $10^{10}$ (en la práctica, una matriz casi singular da direcciones inestables, no solo una exactamente singular). Esto pasa sobre todo en nodos con pocos datos o cuando alguna variable es constante en el nodo. Descartamos regularizar ($S_W + \lambda I$) porque introduce un parámetro más ($\lambda$) que habría que elegir, y descartamos la pseudo-inversa porque en matrices casi singulares da direcciones que dependen del ruido.
+    \item \textbf{Cuando $S_W$ no es invertible}, el nodo usa solo cortes paralelos a un eje, como un árbol normal. Consideramos que $S_W$ no es invertible si alguna variable es constante dentro del nodo o si el número de condición de $S_W$ \emph{normalizada} (cada entrada $S_{ij}$ dividida entre $\sqrt{S_{ii}S_{jj}}$, como una matriz de correlación) es mayor que $10^{10}$. Normalizamos porque el número de condición ``crudo'' depende de las unidades: en el vino, la varianza de \texttt{density} es del orden de $10^{-6}$ y la de \texttt{total sulfur dioxide} del orden de $10^{3}$, y la matriz parecería casi singular sin serlo. Una matriz casi singular da direcciones inestables, no solo una exactamente singular. Esto pasa sobre todo en nodos con pocos datos o cuando alguna variable es constante en el nodo. Descartamos regularizar ($S_W + \lambda I$) porque introduce un parámetro más ($\lambda$) que habría que elegir, y descartamos la pseudo-inversa porque en matrices casi singulares da direcciones que dependen del ruido.
     \item \textbf{En cada nodo comparamos} el mejor corte oblicuo (dirección de Fisher con su mejor umbral) contra el mejor corte paralelo a un eje, y nos quedamos con el de menor Gini ponderado. Así el árbol nunca hace un corte peor que el de un árbol normal en ese nodo, y si la frontera real es paralela a un eje, la puede usar. Lo que perdemos es parte de la invariancia a rotaciones del inciso (d): cuando el árbol elige un corte paralelo, ese nodo sí depende de los ejes.
 \end{itemize}
 
@@ -492,7 +492,8 @@ CONSTRUIR(X, y, profundidad):
     si las dos clases tienen al menos 2 puntos:
         m0, m1 <- medias de cada clase
         S_W   <- suma de (x - m_c)(x - m_c)^T sobre todos los puntos
-        si número de condición de S_W <= 1e10:
+        si ninguna variable es constante y
+           número de condición de S_W normalizada <= 1e10:
             w <- resolver S_W w = (m1 - m0)
             agregar MEJOR_UMBRAL(X w, y) con dirección w a candidatos
     # Cortes paralelos a cada eje
@@ -520,6 +521,60 @@ PREDECIR(x):       1 si PREDECIR_PROBA(x) >= 1/2, si no 0
 \end{verbatim}
 
 \textbf{Cuándo detenerse:} cuando se llega a la profundidad máxima (que se elige con validación cruzada en la parte práctica), cuando el nodo es puro, cuando quedan menos de \texttt{min\_muestras} puntos, o cuando ningún corte reduce el Gini. \textbf{Qué predice cada hoja:} la proporción de puntos de clase $1$ que llegaron a ella en el entrenamiento; esa es la probabilidad de \texttt{predict\_proba}, y \texttt{predict} da la clase mayoritaria.
+
+% ============================================================================
+\subsection{Parte práctica}
+% ============================================================================
+El código, las tablas y las gráficas están en \texttt{problema-2/problema\_2.ipynb} y en el \texttt{README} de esa carpeta. En resumen: el árbol oblicuo encuentra en los seis puntos de (b) exactamente $w = (2, -2)$; con los datos girados $35^\circ$ tiene 100\,\% de exactitud desde profundidad 1, mientras que el árbol de \texttt{scikit-learn} empieza en 82\,\%; y en el vino tinto empata en AUC-ROC con el árbol de \texttt{scikit-learn} (0.837 contra 0.834) pero pierde en AUC-PR (0.435 contra 0.503) por sobreajuste, algo que el \emph{bagging} corrige (0.737, al nivel del bosque aleatorio, 0.744).
+
+% ============================================================================
+\subsection{Bitácora de decisiones — Problema 2}
+% ============================================================================
+
+\subsubsection*{Decisión 1: Qué hacer cuando $S_W$ no es invertible (Tú decides, teoría (e))}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] Si $S_W$ no es invertible (alguna variable constante en el nodo o número de condición de $S_W$ normalizada mayor que $10^{10}$), el nodo usa solo cortes paralelos a un eje.
+    \item[Alternativas descartadas.] Regularizar con $S_W + \lambda I$ y usar la pseudo-inversa.
+    \item[Por qué.] Regularizar agrega un hiperparámetro ($\lambda$) que habría que elegir con validación cruzada, y la pseudo-inversa da direcciones que dependen del ruido cuando la matriz está casi singular. Como de todas formas comparamos contra los cortes paralelos (decisión 2), la opción más simple es que el corte oblicuo no participe en ese nodo.
+    \item[Evidencia.] En el vino, las variables tienen escalas de $10^{-6}$ a $10^{3}$; con el número de condición sin normalizar, casi ningún nodo habría usado cortes oblicuos. Con la normalización, el árbol de profundidad 4 entrenado con todos los vinos usa cortes oblicuos en 15 de sus 15 nodos internos.
+    \item[Qué perdemos.] En nodos pequeños o con variables casi constantes, el árbol se comporta como uno normal y pierde la invariancia a rotaciones en ese nodo.
+\end{description}
+
+\subsubsection*{Decisión 2: Comparar el corte oblicuo contra el paralelo (Tú decides, teoría (e))}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] En cada nodo calculamos el mejor corte oblicuo (dirección de Fisher) y el mejor corte paralelo a cada eje, y nos quedamos con el de menor Gini ponderado.
+    \item[Alternativa descartada.] Usar siempre el corte oblicuo.
+    \item[Por qué.] Así el árbol nunca hace en un nodo un corte peor (en Gini) que el de un árbol normal, y cuando la frontera es paralela a un eje la puede usar.
+    \item[Evidencia.] Con los datos de la práctica (b) transformados con $x_1 \mapsto e^{3x_1}$, el árbol oblicuo mantuvo 100\,\% de exactitud porque eligió el corte paralelo, que es invariante a funciones crecientes. Con los datos girados, eligió el oblicuo y también tuvo 100\,\%.
+    \item[Qué perdemos.] Parte de la invariancia a rotaciones (en los nodos donde gana el corte paralelo) y un poco más de cálculo por nodo ($d + 1$ búsquedas de umbral en vez de 1).
+\end{description}
+
+\subsubsection*{Decisión 3: Métrica de comparación (Tú decides, práctica (c))}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] AUC-PR (\emph{average precision}) como métrica principal y AUC-ROC como complemento.
+    \item[Alternativas descartadas.] Exactitud, exactitud balanceada y F1.
+    \item[Por qué.] Solo el 13.6\,\% de los vinos tiene calidad $\ge 7$: decir ``malo'' a todos da 86\,\% de exactitud. La exactitud balanceada y F1 dependen del umbral de 0.5, y los árboles poco profundos casi nunca predicen la clase minoritaria con ese umbral. AUC-PR evalúa qué tan bien quedan los vinos buenos hasta arriba del orden, y su valor de azar es la proporción de positivos (0.136), así que es fácil de interpretar.
+    \item[Evidencia.] La diferencia entre el árbol oblicuo y el de \texttt{scikit-learn} solo se ve con AUC-PR (0.435 contra 0.503); con AUC-ROC empatan (0.837 contra 0.834). Con clases desbalanceadas, AUC-ROC puede esconder diferencias en la parte del orden que importa.
+    \item[Qué perdemos.] AUC-PR es más ruidosa entre pliegues (desviación de hasta 0.076) y es menos conocida que la exactitud para explicar los resultados.
+\end{description}
+
+\subsubsection*{Decisión 4: Elegir la profundidad con validación cruzada anidada (Tú decides, práctica (c))}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] Cinco pliegues externos para evaluar; dentro de cada uno, otra validación cruzada de cinco pliegues elige la profundidad (de 1 a 10) solo con el entrenamiento.
+    \item[Alternativa descartada.] Una sola validación cruzada por profundidad, reportando la mejor.
+    \item[Por qué.] Reportar el mejor resultado entre 10 profundidades con los mismos datos infla el número (el sesgo del inciso (b) del Problema 1).
+    \item[Evidencia.] Las profundidades elegidas cambian entre pliegues (de 2 a 5 para el árbol oblicuo), lo que muestra que la elección es ruidosa y que reportar el máximo de una sola curva sería optimista. En la curva del inciso (d), el máximo de validación del árbol con cortes paralelos es 0.529, mayor que el 0.503 de la validación anidada del árbol de \texttt{scikit-learn}.
+    \item[Qué perdemos.] Tiempo de cálculo (unas 250 veces más entrenamientos por modelo) y que no hay ``una'' profundidad elegida, sino una por pliegue.
+\end{description}
+
+\subsubsection*{Decisión 5: Cómo poner a prueba por qué perdió el árbol oblicuo (práctica (d))}
+\begin{description}[leftmargin=0pt, itemsep=2pt]
+    \item[Decisión.] Comparar el AUC-PR de entrenamiento y validación por profundidad del árbol oblicuo contra el \emph{mismo código} con \texttt{oblicuo=False}, y contra el árbol oblicuo con $\log(1 + x)$.
+    \item[Alternativa descartada.] Comparar directamente contra el árbol de \texttt{scikit-learn}.
+    \item[Por qué.] Con el mismo código, la única diferencia es el tipo de corte, así que cualquier diferencia se debe a los cortes oblicuos y no a detalles de implementación. El logaritmo pone a prueba la hipótesis alternativa (valores extremos).
+    \item[Evidencia.] El árbol oblicuo tiene mayor AUC-PR en entrenamiento pero menor en validación desde profundidad 3 (por ejemplo, 0.454 contra 0.529 en profundidad 5): sobreajuste. El logaritmo no lo mejora. El \emph{bagging} de árboles oblicuos, que reduce la varianza, sube el AUC-PR de 0.435 a 0.737. Además, nuestro árbol con \texttt{oblicuo=False} da casi lo mismo que el de \texttt{scikit-learn}, lo que valida la implementación.
+    \item[Qué perdemos.] El experimento usa una sola validación cruzada por profundidad (no anidada), así que sus números absolutos son un poco optimistas; lo que importa es la comparación entre variantes, que usan los mismos pliegues.
+\end{description}
 
 \clearpage
 \section*{Declaración de uso de asistentes de IA}
@@ -556,7 +611,12 @@ Después usé Claude Code para revisar y continuar el trabajo:
 \paragraph{Decisiones propias.} Las decisiones de fondo fueron mías: usar el modelo \emph{antes} de llamar y, por lo tanto, quitar \texttt{duration}, \texttt{campaign}, \texttt{day} y \texttt{month}; respetar el orden cronológico de los datos; la hipótesis de la ventana deslizante; y usar regresión logística en el experimento del ruido. Claude propuso la métrica de reporte (precisión en el 10\,\% superior) y comparar \texttt{class\_weight="balanced"} contra no balancear; yo las acepté después de que me explicara por qué tenían sentido para el uso del banco.
 
 \subsection*{Problema 2}
-\pendiente{Llenar al terminar el problema 2}
+
+\paragraph{Parte teórica.} Claude me explicó primero la idea del problema sin ecuaciones (cortes paralelos, la escalera, el corte oblicuo y la dirección de Fisher). En los incisos (a) y (b) me guió con pasos con huecos que yo llené: hice el cálculo del área de la escalera, el despeje de $m$ y el conteo de hojas, y en (b) calculé a mano las medias, la tabla de $S_W$, el determinante, la inversa, la dirección $w$ y las proyecciones; Claude corrigió algunos errores de álgebra y de signos, pasó mis respuestas a \LaTeX{} e hizo los dibujos. Los incisos (c), (d) y (e) los redactó Claude por falta de tiempo; yo tomé las dos decisiones del inciso (e) (usar solo cortes paralelos cuando $S_W$ no es invertible y comparar el corte oblicuo contra el paralelo en cada nodo) entre las opciones que me propuso.
+
+\paragraph{Parte práctica.} Claude programó el árbol oblicuo, su prueba automática y todos los experimentos del notebook, y redactó los comentarios y el \texttt{README}. Durante el trabajo encontró y corrigió un error propio: el orden de la herencia (\texttt{ClassifierMixin} debe ir antes que \texttt{BaseEstimator}), que hacía fallar en silencio la métrica AUC. Yo elegí la métrica de comparación (AUC-PR y AUC-ROC) y la validación cruzada anidada para elegir la profundidad.
+
+\paragraph{Redacción.} La bitácora del Problema 2 la redactó Claude a partir de las decisiones anteriores.
 
 \subsection*{Cómo verifiqué lo que hizo la IA}
 Corrí yo mismo cada celda del notebook y comparé sus resultados con los valores esperados. Cuando no entendía algo (por ejemplo, el experimento del ruido o por qué balancear no cambia el resultado), pedí que me lo explicaran con un ejemplo antes de aceptarlo. También revisé que los resultados prácticos fueran coherentes con la parte teórica, y cuando no lo eran (las copias en el inciso (c) y la correlación en el inciso (e)), pedí la explicación de la diferencia.
